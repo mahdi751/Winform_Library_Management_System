@@ -1,4 +1,5 @@
 using LibraryAPI.Data;
+using LibraryAPI.Exceptions;
 using LibraryAPI.Interfaces;
 using LibraryAPI.Repository;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,17 @@ builder.Services.AddScoped<IBookRepository, BookRepository>();
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+builder.Services.AddScoped<IMembershipRepository, MembershipRepository>();
+builder.Services.AddScoped<IBorrowRepository, BorrowRepository>();
+
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<AccountExceptionHandler>();
+    options.Filters.Add<BookExceptionHandeler>();
+    options.Filters.Add<MembershipExceptionHandler>();
+    options.Filters.Add<PaymentExceptionHandler>();
+    options.Filters.Add<BorrowExceptionHandler>();
+});
 
 var app = builder.Build();
 

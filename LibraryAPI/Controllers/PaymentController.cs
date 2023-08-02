@@ -1,4 +1,5 @@
-﻿using LibraryAPI.Interfaces;
+﻿using LibraryAPI.Exceptions;
+using LibraryAPI.Interfaces;
 using LibraryAPI.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -10,48 +11,86 @@ namespace LibraryAPI.Controllers
     public class PaymentController : ControllerBase
     {
         private readonly IPaymentRepository _paymentRepository;
+        private readonly IBorrowRepository _borrowRepository;
 
-        public PaymentController(IPaymentRepository paymentRepository)
+        public PaymentController(IPaymentRepository paymentRepository, IBorrowRepository borrowRepository)
         {
             _paymentRepository = paymentRepository;
+            _borrowRepository = borrowRepository;
         }
 
-        [HttpPost]
-        public async Task<ActionResult> AddPayment([FromBody] PaymentHistory paymentHistory)
+        [HttpPost("PayOverdueFine/{userid}/{overdueFine}")]
+        public async Task<ActionResult> PayOverdueFine(int userid,int overdueFine)
         {
+            
             try
             {
-                if (paymentHistory == null)
-                    return BadRequest();
+                var success = await _borrowRepository.UpdateOverdueFines(userid);
+                if (!success)
+                    return BadRequest("Couldn't complete the payment process!");
 
-                await _paymentRepository.AddPayment(paymentHistory);
-                return Ok(paymentHistory);
+                var payment = new PaymentHistory
+                {
+                    Amount = overdueFine,
+                    PaymentDate = DateTime.Today,
+                    PaymentType = "overdue",
+                    User_UserID = userid
+                };
+
+                var paymentSuccess = await _paymentRepository.PayFines(payment);
+                if (!paymentSuccess)
+                {
+                    throw new MembershipExceptions.PaymentHistoryException("Couldn't insert the payment!");
+                }
+
+                return Ok(payment);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"An error occurred: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
             }
         }
 
-        [HttpGet("/{userId}")]
+        [HttpGet("payments/{userId}")]
         public async Task<ActionResult<ICollection<PaymentHistory>>> GetPaymentHistories(int userId)
         {
-            var paymentHistories = await _paymentRepository.GetPaymentHistories(userId);
-            return Ok(paymentHistories);
+            try
+            {
+                var paymentHistories = await _paymentRepository.GetPaymentHistories(userId);
+                return Ok(paymentHistories);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
+            }
         }
 
-        [HttpGet("/{userId}/{type}")]
+        [HttpGet("payments/{userId}/{type}")]
         public async Task<ActionResult<ICollection<PaymentHistory>>> GetPaymentHistoriesByType(int userId, string type)
         {
-            var paymentHistories = await _paymentRepository.GetPaymentHistoriesByType(userId, type);
-            return Ok(paymentHistories);
+            try
+            {
+                var paymentHistories = await _paymentRepository.GetPaymentHistoriesByType(userId, type);
+                return Ok(paymentHistories);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
+            }
         }
 
-        [HttpGet("/totalAmount")]
+        [HttpGet("totalAmount")]
         public async Task<ActionResult<decimal>> GetTotalPayments()
         {
-            var totalPayments = await _paymentRepository.GetTotalPayments();
-            return Ok(totalPayments);
+            try
+            {
+                var totalPayments = await _paymentRepository.GetTotalPayments();
+                return Ok(totalPayments);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
+            }
         }
     }
 }

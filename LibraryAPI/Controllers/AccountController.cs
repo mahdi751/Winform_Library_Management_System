@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Cryptography;
 using System.Text;
+using LibraryAPI.Exceptions;
 
 namespace LibraryAPI.Controllers
 {
@@ -19,13 +20,16 @@ namespace LibraryAPI.Controllers
             _accountRepository = accountRepository;
         }
 
-        [HttpPost("/login")]
+
+        [HttpPost("login")]
+        [ProducesResponseType(200, Type = typeof(User))]
+        [ProducesResponseType(400)]
         public async Task<ActionResult<User>> Login(LoginDTO loginDto)
         {
             var user = await _accountRepository.GetUserByUsername(loginDto.Username);
             if (user == null)
             {
-                return Unauthorized("Invalid username");
+                throw new AccountExceptions.UserNotFoundException("Invalid username");
             }
 
             using var hmac = new HMACSHA512(user.PasswordSalt);
@@ -34,16 +38,16 @@ namespace LibraryAPI.Controllers
 
             for (int i = 0; i < computedHash.Length; i++)
             {
-                if (computedHash[i] != user.PasswordHash[i]) 
-                    return Unauthorized("invalid password");
+                if (computedHash[i] != user.PasswordHash[i])
+                {
+                    throw new AccountExceptions.PasswordMismatchException("Invalid password");
+                }
             }
 
             return Ok(user);
-
-
         }
 
-        [HttpPost("/register")]
+        [HttpPost("register")]
         [ProducesResponseType(200, Type = typeof(User))]
         [ProducesResponseType(400)]
         public async Task<IActionResult> Register([FromBody] RegisterDTO newUserDto)
@@ -55,12 +59,12 @@ namespace LibraryAPI.Controllers
 
             if (await _accountRepository.UserExits(newUserDto.Username))
             {
-                return BadRequest("Username is taken!");
+                throw new AccountExceptions.UsernameTakenException("Username is taken!");
             }
 
             if (await _accountRepository.EmailExists(newUserDto.Email))
             {
-                return BadRequest("Email is taken!");
+                throw new AccountExceptions.EmailTakenException("Email is taken!");
             }
 
             byte[] passwordSalt;
@@ -89,14 +93,13 @@ namespace LibraryAPI.Controllers
 
             if (!await _accountRepository.AddUser(user))
             {
-                ModelState.AddModelError("", "Process interrupted! Couldn't add user");
-                return StatusCode(400, ModelState);
+                throw new Exception("Process interrupted! Couldn't add user");
             }
 
             return Ok(user);
         }
 
-        [HttpPost("/forgetPassword")]
+        [HttpPost("forgetPassword")]
         [ProducesResponseType(200, Type = typeof(User))]
         [ProducesResponseType(400)]
         public async Task<IActionResult> ForgetPassword(ForgetPasswordDTO forgetPasswordDto)
@@ -109,7 +112,7 @@ namespace LibraryAPI.Controllers
             var user = await _accountRepository.GetUserByUsername(forgetPasswordDto.Username);
             if (user == null)
             {
-                return NotFound("User not found");
+                throw new AccountExceptions.UserNotFoundException("User not found");
             }
 
             byte[] newPasswordHash;
@@ -120,15 +123,23 @@ namespace LibraryAPI.Controllers
 
             user.PasswordHash = newPasswordHash;
 
-            if(!await _accountRepository.UpdateUser(user))
+            if (!await _accountRepository.UpdateUser(user))
             {
-                ModelState.AddModelError("", "Process interrupted! Couldn't add user");
-                return StatusCode(400, ModelState);
+                throw new Exception("Process interrupted! Couldn't update user password");
             }
 
             return Ok(user);
         }
 
-
+        [HttpGet("User/{username}")]
+        public async Task<ActionResult<int>> GetUserID(string username)
+        {
+            var id = await _accountRepository.GetUserIDByUsername(username);
+            if (id == 0)
+            {
+                throw new Exception("Something went wrong while retrieving the id!");
+            }
+            return id;
+        }
     }
 }

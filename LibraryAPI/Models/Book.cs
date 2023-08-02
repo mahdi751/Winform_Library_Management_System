@@ -14,7 +14,7 @@ namespace LibraryAPI.Models
         public string Booktitle { get; set; }
         public string Isbn { get; set; }
         public int Totalquantity { get; set; }
-        public string Shelf { get; set; }
+        public int AvailableQuantity { get; set; }
         public string Genre { get; set; }
         public string Publishername { get; set; }
         public DateTime Publicationdate { get; set; }

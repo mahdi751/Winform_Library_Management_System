@@ -15,7 +15,14 @@ namespace LibraryAPI.Repository
 
         public async Task<User> GetUserByUsername(string username)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            return await _context.Users.Where(u => u.Username == username).FirstOrDefaultAsync();
+        }
+
+        public async Task<int> GetUserIDByUsername(string username)
+        {
+            return await _context.Users.Where(u => u.Username == username)
+                                       .Select(u => u.UserID)
+                                       .FirstOrDefaultAsync();
         }
 
         public async Task<bool> UserExits(string username)

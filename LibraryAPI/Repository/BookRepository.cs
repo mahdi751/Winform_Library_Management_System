@@ -13,6 +13,12 @@ namespace LibraryAPI.Repository
             _context = context;
         }
 
+        public async Task<bool> AddBook(Book book)
+        {
+            await _context.Books.AddAsync(book);
+            return await Save();
+        }
+
         public async Task<ICollection<Book>> GetAllBooks()
         {
             return await _context.Books.ToListAsync();
@@ -20,7 +26,7 @@ namespace LibraryAPI.Repository
 
         public async Task<ICollection<Book>> GetAllBooksByTitle(string title)
         {
-            return await _context.Books.Where(b => b.Booktitle == title).ToListAsync();
+            return await _context.Books.Where(b => b.Booktitle.ToLower().Contains(title.ToLower())).ToListAsync();
         }
 
         public async Task<ICollection<Book>> GetAllBooksByAuthorName(string name)
@@ -29,7 +35,7 @@ namespace LibraryAPI.Repository
                 .Where(b => _context.BookAuthors
                     .Any(ba => ba.Book_BookID == b.Bookid
                         && ba.Author_AuthorID == _context.Authors
-                            .Where(a => a.AuthorName == name)
+                            .Where(a => a.AuthorName.ToLower().Contains(name.ToLower()))
                             .Select(a => a.AuthorID)
                             .FirstOrDefault()))
                 .ToListAsync();
@@ -46,6 +52,17 @@ namespace LibraryAPI.Repository
         public async Task<Book> GetBookByISBN(string isbn)
         {
             return await _context.Books.Where(b => b.Isbn == isbn).FirstOrDefaultAsync();
+        }
+
+        public async Task<Book> GetBookById(int id)
+        {
+            return await _context.Books.Where(b => b.Bookid == id).FirstOrDefaultAsync();
+        }
+
+        public async Task<bool> UpdateBook(Book book)
+        {
+            _context.Books.Update(book);
+            return await Save();
         }
     }
 }

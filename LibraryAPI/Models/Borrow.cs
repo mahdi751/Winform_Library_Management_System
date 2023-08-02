@@ -14,7 +14,9 @@ namespace LibraryAPI.Models
         public int Book_BookID { get; set; }
         public DateTime PickupDate { get; set; }
         public DateTime ReturnDate { get; set; }
-        public decimal Overduefine { get; set; }
+        public int Overduefine { get; set; }
+        public bool IsReturned { get; set; }
+        public DateTime ReturnedDate { get; set; }
 
     }
 }

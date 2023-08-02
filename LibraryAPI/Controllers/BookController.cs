@@ -1,6 +1,6 @@
-﻿using LibraryAPI.Interfaces;
+﻿using LibraryAPI.Exceptions;
+using LibraryAPI.Interfaces;
 using LibraryAPI.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryAPI.Controllers
@@ -16,50 +16,100 @@ namespace LibraryAPI.Controllers
             _bookRepository = bookRepository;
         }
 
-        [HttpGet("/Books")]
-        [ProducesResponseType(200, Type = typeof(List<Book>))]
-        [ProducesResponseType(400)]
+        [HttpPost("CreateBook")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Book))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetAllBooks([FromBody] Book book)
+        {
+            try
+            {
+                var bookSuccess = await _bookRepository.AddBook(book);
+                if(!bookSuccess)
+                {
+                    return BadRequest("Couldn't add the book!");
+                }
+                return Ok(book);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while fetching books.", ex);
+            }
+        }
+
+        [HttpGet("Books")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<Book>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetAllBooks()
         {
-            var books = await _bookRepository.GetAllBooks();
-            if(books == null)
+            try
             {
-                ModelState.AddModelError("", "There is no books!");
-                return StatusCode(400, ModelState);
+                var books = await _bookRepository.GetAllBooks();
+                return Ok(books);
             }
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            return Ok(books);
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while fetching books.", ex);
+            }
         }
 
-        [HttpGet("/Books/BookTitle/{BookTilte}")]
-        [ProducesResponseType(200, Type = typeof(List<Book>))]
-        [ProducesResponseType(400)]
-        public async Task<IActionResult> GetBookByTitle(string BookTilte)
+        [HttpGet("Books/BookTitle/{bookTitle}")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<Book>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetBooksByTitle(string bookTitle)
         {
-            var books = await _bookRepository.GetAllBooksByTitle(BookTilte);
-            return Ok(books);
+            try
+            {
+                var books = await _bookRepository.GetAllBooksByTitle(bookTitle);
+                if (books == null)
+                {
+                    throw new BookExceptions.BooksByTitleNotFoundException("There are no books with that title!");
+                }
+                return Ok(books);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while fetching books by title.", ex);
+            }
         }
 
-        [HttpGet("/Books/AuthorName/{AuthorName}")]
-        [ProducesResponseType(200, Type = typeof(List<Book>))]
-        [ProducesResponseType(400)]
-        public async Task<IActionResult> GetBookaByAuthorName(string AuthorName)
+        [HttpGet("Books/AuthorName/{authorName}")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<Book>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetBooksByAuthorName(string authorName)
         {
-            var books = await _bookRepository.GetAllBooksByAuthorName(AuthorName);
-            return Ok(books);
+            try
+            {
+                var books = await _bookRepository.GetAllBooksByAuthorName(authorName);
+                if (books == null)
+                {
+                    throw new BookExceptions.BooksByAuthorNameNotFoundException("There are no books with this Author Name");
+                }
+                return Ok(books);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while fetching books by author name.", ex);
+            }
         }
 
-        [HttpGet("/Books/ISBN/{isbn}")]
-        [ProducesResponseType(200, Type = typeof(List<Book>))]
-        [ProducesResponseType(400)]
+        [HttpGet("Books/ISBN/{isbn}")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Book))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetBookByIsbn(string isbn)
         {
-            var book = await _bookRepository.GetBookByISBN(isbn);
-            return Ok(book);
+            try
+            {
+                var book = await _bookRepository.GetBookByISBN(isbn);
+                if (book == null)
+                {
+                    throw new BookExceptions.BookByIsbnNotFoundException("No book found with the specified ISBN.");
+                }
+                return Ok(book);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while fetching the book by ISBN.", ex);
+            }
         }
-
-
     }
 }

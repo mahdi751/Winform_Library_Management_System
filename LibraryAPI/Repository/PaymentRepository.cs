@@ -14,7 +14,7 @@ namespace LibraryAPI.Repository
             _context = context;
         }
 
-        public async Task<bool> AddPayment(PaymentHistory paymentHistory)
+        public async Task<bool> PayFines(PaymentHistory paymentHistory)
         {
             await _context.PaymentHistories.AddAsync(paymentHistory);
             return await Save();

@@ -24,7 +24,7 @@ namespace LibraryAPI.Repository
                 .Select(m => m.MembershipID)
                 .FirstOrDefaultAsync();
         }
-        public async Task<Membership> GetMembershipByUserID(int userID)
+        public async Task<Membership> GetMembershipDetailsByUserID(int userID)
         {
             DateTime currentDate = DateTime.Today;
 
@@ -64,6 +64,25 @@ namespace LibraryAPI.Repository
         {
             var saved = await _context.SaveChangesAsync();
             return saved > 0;
+        }
+
+        public async Task<bool> UpdateMembership(Membership membership)
+        {
+            _context.Memberships.Update(membership);
+            return await Save();
+        }
+
+        public async Task<Membership> GetMembershipByMembershipID(int membership)
+        {
+            return await _context.Memberships.Where(m => m.MembershipID == membership).FirstOrDefaultAsync();
+        }
+
+        public async Task<Membership> GetLastMembershipByUserID(int userID)
+        {
+            return await _context.Memberships
+                .Where(m => m.User_UserID == userID)
+                .OrderByDescending(m => m.EndDate)
+                .FirstOrDefaultAsync();
         }
     }
 }
