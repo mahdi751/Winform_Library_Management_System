@@ -29,6 +29,11 @@ namespace LibraryAPI.Repository
             return await _context.Books.Where(b => b.Booktitle.ToLower().Contains(title.ToLower())).ToListAsync();
         }
 
+        public async Task<ICollection<Book>> GetAllBooksByGenre(string genre)
+        {
+            return await _context.Books.Where(b => b.Genre.ToLower().Contains(genre.ToLower())).ToListAsync();
+        }
+
         public async Task<ICollection<Book>> GetAllBooksByAuthorName(string name)
         {
             var booksByAuthor = await _context.Books

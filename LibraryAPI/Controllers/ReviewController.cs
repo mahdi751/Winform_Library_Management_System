@@ -18,20 +18,15 @@ namespace LibraryAPI.Controllers
             _reviewRepository = reviewRepository;
         }
 
-        [HttpPost("Create/{bookID}/{membershipID}")]
+        [HttpPost("Create")]
         [ProducesResponseType(200)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> ReviewBook(int bookID,int membershipID, [FromBody] ReviewDTO reviewDto)
+        public async Task<ActionResult<Review>> ReviewBook([FromBody] ReviewDTO reviewDto)
         {
-            if (reviewDto == null)
-            {
-                return BadRequest("Invalid review data");
-            }
-
             var bookReview = new Review
             {
-                Book_BookID = bookID,
-                Membership_MembershipID = membershipID,
+                Book_BookID = reviewDto.BookID,
+                Membership_MembershipID = reviewDto.MembershipID,
                 Comment = reviewDto.Comment,
                 Rating = reviewDto.Rating,
                 ReviewDate = DateTime.Today
@@ -42,7 +37,7 @@ namespace LibraryAPI.Controllers
                 return BadRequest("Error while adding review");
             }
             
-            return Ok("Book review added");
+            return Ok(bookReview);
         }
 
         [HttpGet("reviews/{bookId}")]
@@ -50,8 +45,15 @@ namespace LibraryAPI.Controllers
         [ProducesResponseType(400)]
         public async Task<IActionResult> GetAllReviewsForBook(int bookId)
         {
-            var reviews = await _reviewRepository.GetAllReviewsOfaBook(bookId);
-            return Ok(reviews);
+            try
+            {
+                var reviews = await _reviewRepository.GetAllReviewsOfaBook(bookId);
+                return Ok(reviews);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpGet("getReview/{bookID}/{userid}")]

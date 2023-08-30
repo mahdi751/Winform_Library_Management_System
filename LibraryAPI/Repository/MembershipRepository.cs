@@ -14,7 +14,6 @@ namespace LibraryAPI.Repository
         {
             _context = context;
         }
-
         public async Task<int> GetMembershipIdByUserID(int userID)
         {
             DateTime currentDate = DateTime.Today;
@@ -57,7 +56,7 @@ namespace LibraryAPI.Repository
         public async Task<bool> AddMembership(Membership membership)
         {
             await _context.Memberships.AddAsync(membership);
-            return await Save();
+            return true;
         }
 
         public async Task<bool> Save()
@@ -69,7 +68,7 @@ namespace LibraryAPI.Repository
         public async Task<bool> UpdateMembership(Membership membership)
         {
             _context.Memberships.Update(membership);
-            return await Save();
+            return true;
         }
 
         public async Task<Membership> GetMembershipByMembershipID(int membership)
@@ -83,6 +82,24 @@ namespace LibraryAPI.Repository
                 .Where(m => m.User_UserID == userID)
                 .OrderByDescending(m => m.EndDate)
                 .FirstOrDefaultAsync();
+        }
+
+
+        public async Task<string> GetUsernameByMembershipID(int membershipID)
+        {
+            return await _context.Users.Where(u => _context.Memberships
+                   .Any(m => m.User_UserID == u.UserID && m.MembershipID == membershipID))
+                   .Select(u => u.Username)
+                   .FirstOrDefaultAsync();
+        }
+
+        public async Task<int> GetMembershipRemainingBorrowAbility(int membershiID)
+        {
+            return _context.Memberships
+                .Where(m =>m.MembershipID == membershiID)
+                .Select(m => m.RemainingBorrowAbility)
+                .FirstOrDefault();
+
         }
     }
 }

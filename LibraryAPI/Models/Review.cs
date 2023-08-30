@@ -10,12 +10,12 @@ namespace LibraryAPI.Models
     [Table("Review", Schema = "dbo")]
     public class Review
     {
+        public int ReviewID { get; set; }
         public int Membership_MembershipID { get; set; }
         public int Book_BookID { get; set; }
         public int Rating { get; set; }
         public string Comment { get; set; }
         public DateTime ReviewDate { get; set; }
-
 
     }
 }

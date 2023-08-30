@@ -25,22 +25,51 @@ namespace LibraryAPI.Repository
                                        .FirstOrDefaultAsync();
         }
 
+        public async Task<bool> UserExits(User user)
+        {
+            return await _context.Users.AnyAsync(x => x.Username == user.Username.ToLower() && x.UserID != user.UserID);
+        }
+
         public async Task<bool> UserExits(string username)
         {
             return await _context.Users.AnyAsync(x => x.Username == username.ToLower());
         }
+
         public async Task<bool> EmailExists(string email)
         {
             return await _context.Users.AnyAsync(x => x.Email == email.ToLower());
         }
+
+        public async Task<bool> EmailExists(User user)
+        {
+            return await _context.Users.AnyAsync(x => x.Email == user.Email.ToLower() && x.UserID != user.UserID);
+        }
+
         public async Task<bool> AddUser(User user)
         {
             await _context.Users.AddAsync(user);
             return await Save();
         }
+
         public async Task<bool> UpdateUser(User user)
         {
             _context.Users.Update(user);
+            return await Save();
+        }
+
+        public async Task<User> GetUserByID(int userid)
+        {
+            return await _context.Users.Where(u => u.UserID == userid).FirstOrDefaultAsync();
+        }
+
+        public async Task<string> GetUsernamaByID(int id)
+        {
+            return await _context.Users.Where(u => u.UserID == id)
+                                .Select(u => u.Username).FirstOrDefaultAsync();
+        }
+        public async Task<bool> RemoveUser(User user)
+        {
+            _context.Users.Remove(user);
             return await Save();
         }
         public async Task<bool> Save()

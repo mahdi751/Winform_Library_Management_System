@@ -4,6 +4,8 @@ using LibraryAPI.Models;
 using LibraryAPI.Interfaces;
 using LibraryAPI.DTOs;
 using LibraryAPI.Exceptions;
+using Microsoft.EntityFrameworkCore;
+using LibraryAPI.Data;
 
 namespace LibraryAPI.Controllers
 {
@@ -14,16 +16,19 @@ namespace LibraryAPI.Controllers
         private readonly IBorrowRepository _borrowRepository;
         private readonly IBookRepository _bookRepository;
         private readonly IMembershipRepository _membershipRepository;
+        private readonly DataContext _context;
 
-        public BorrowController(IBorrowRepository borrowRepository, IBookRepository bookRepository, IMembershipRepository membershipRepository)
+        public BorrowController(IBorrowRepository borrowRepository, IBookRepository bookRepository, IMembershipRepository membershipRepository, DataContext context)
         {
             _borrowRepository = borrowRepository;
             _bookRepository = bookRepository;
             _membershipRepository = membershipRepository;
+
+            _context = context;
         }
 
         [HttpPost("BorrowBook")]
-        public async Task<IActionResult> BorrowBook([FromBody] BorrowDTO borrowedBook)
+        public async Task<ActionResult<bool>> BorrowBook([FromBody] BorrowDTO borrowedBook)
         {
             try
             {
@@ -69,12 +74,74 @@ namespace LibraryAPI.Controllers
                         return BadRequest("Membership RemainingBorrowAbility was not updated!");
                     }
 
-                    return Ok("Book borrowed successfully!");
-                }
-                
-                throw new BorrowExceptions.BorrowBookException("Failed to borrow the book.");
+                    await _membershipRepository.Save();
 
-                
+                    return Ok(true);
+                }
+                else
+                    return false;
+            }
+            catch (BorrowExceptions.BorrowBookException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("UpdateBorrowBookRecord")]
+        public async Task<ActionResult<bool>> UpdateBorrowBookRecord([FromBody] BorrowDTO borrowedBook)
+        {
+            try
+            {
+                var book = await _bookRepository.GetBookById(borrowedBook.Book_BookID);
+                if (book == null)
+                {
+                    throw new BorrowExceptions.BorrowBookException("Invalid Book.");
+                }
+
+                if (book.Totalquantity <= 0)
+                {
+                    throw new BorrowExceptions.BorrowBookException("No more copies of the book available.");
+                }
+
+                var membership = await _membershipRepository.GetMembershipByMembershipID(borrowedBook.Membership_MembershipID);
+                if (membership == null)
+                {
+                    throw new BorrowExceptions.BorrowBookException("Invalid Membership.Check the subscription!");
+                }
+
+                if (membership.RemainingBorrowAbility <= 0)
+                    throw new BorrowExceptions.BorrowBookException("You have reached the borrow limit for your membership.");
+
+                var borrowRec = await _borrowRepository.GetBorrowRecordByMembership(borrowedBook.Book_BookID, borrowedBook.Membership_MembershipID);
+                if (borrowRec != null)
+                {
+                    borrowRec.PickupDate = DateTime.Today;
+                    borrowRec.ReturnDate = DateTime.Today.AddDays(30);
+                    borrowRec.IsReturned = false;
+
+                    if (await _borrowRepository.UpdateBorrowedBook(borrowRec))
+                    {
+                        book.AvailableQuantity--;
+                        if (!await _bookRepository.UpdateBook(book))
+                        {
+                            return BadRequest("Book AvailableQuantity was not updated!");
+                        }
+
+                        membership.RemainingBorrowAbility--;
+                        if (!await _membershipRepository.UpdateMembership(membership))
+                        {
+                            return BadRequest("Membership RemainingBorrowAbility was not updated!");
+                        }
+
+                        await _membershipRepository.Save();
+
+                        return Ok(true);
+                    }
+                    else
+                        return false;
+                }
+                else
+                    return false;
             }
             catch (BorrowExceptions.BorrowBookException ex)
             {
@@ -93,6 +160,37 @@ namespace LibraryAPI.Controllers
                 return Ok("Overdue fines calculated and updated successfully.");
             }
             catch (BorrowExceptions.CalculateOverdueFinesException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("GetCurrentOverduePayments/{membershipID}")]
+        public async Task<IActionResult> GetCurrentOverduePayments(int membershipID)
+        {
+            try
+            {
+                if (!await _borrowRepository.CalculateAllOverdueFines())
+                    throw new BorrowExceptions.CalculateOverdueFinesException("Failed to calculate overdue fines.");
+
+                var overduePayments = await _borrowRepository.GetCurrentTotalOverduePayments(membershipID);
+                return Ok(overduePayments);
+            }
+            catch (BorrowExceptions.GetCurrentOverduePaymentsException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("GetOverdueBooks/{membershipID}")]
+        public async Task<IActionResult> GetOverdueBooks(int membershipID)
+        {
+            try
+            {
+                var overdueBooks = await _borrowRepository.GetOverdueBooks(membershipID);
+                return Ok(overdueBooks);
+            }
+            catch (BorrowExceptions.GetOverdueBooksException ex)
             {
                 return BadRequest(ex.Message);
             }
@@ -140,6 +238,40 @@ namespace LibraryAPI.Controllers
             }
         }
 
+        [HttpGet("GetReturnedBooks/{membershipID}")]
+        public async Task<IActionResult> GetReturnedBooks(int membershipID)
+        {
+            try
+            {
+                var ReturnedBooks = await _borrowRepository.GetReturnedBooks(membershipID);
+                return Ok(ReturnedBooks);
+            }
+            catch (BorrowExceptions.GetUnReturnedBooksException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("GetBookBorrowRecords/{bookid}/{userid}")]
+        public async Task<ActionResult<IEnumerable<Borrow>>> GetBookBorrowRecords(int bookid, int userid)
+        {
+            var borrowRec = await _borrowRepository.GetBookBorrowRecords(bookid,userid);
+            return Ok(borrowRec);
+        }
+
+        [HttpGet("GetBorrowRecordByMembership/{bookid}/{membershipID}")]
+        public async Task<ActionResult<Borrow>> GetBorrowRecordByMembership(int bookid, int membershipID)
+        {
+            var borrowRec = await _borrowRepository.GetBorrowRecordByMembership(bookid, membershipID);
+           
+            if (borrowRec == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(borrowRec);
+        }
+
         [HttpGet("GetCurrentOverduePaymentsDetails/{membershipID}")]
         public async Task<IActionResult> GetCurrentOverduePaymentsDetails(int membershipID)
         {
@@ -157,66 +289,48 @@ namespace LibraryAPI.Controllers
             }
         }
 
-        [HttpGet("GetCurrentOverduePayments/{membershipID}")]
-        public async Task<IActionResult> GetCurrentOverduePayments(int membershipID)
-        {
-            try
-            {
-                if (!await _borrowRepository.CalculateAllOverdueFines())
-                    throw new BorrowExceptions.CalculateOverdueFinesException("Failed to calculate overdue fines.");
-
-                var overduePayments = await _borrowRepository.GetCurrentTotalOverduePayments(membershipID);
-                return Ok(overduePayments);
-            }
-            catch (BorrowExceptions.GetCurrentOverduePaymentsException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
-        [HttpGet("GetOverdueBooks/{membershipID}")]
-        public async Task<IActionResult> GetOverdueBooks(int membershipID)
-        {
-            try
-            {
-                var overdueBooks = await _borrowRepository.GetOverdueBooks(membershipID);
-                return Ok(overdueBooks);
-            }
-            catch (BorrowExceptions.GetOverdueBooksException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
         [HttpPut("ReturnBorrowedBook")]
-        public async Task<IActionResult> ReturnBorrowedBook([FromBody] BorrowDTO borrowedBook)
+        public async Task<ActionResult<bool>> ReturnBorrowedBook([FromBody] BorrowDTO borrowedBook)
         {
-            try
+            using (var transaction = _context.Database.BeginTransaction())
             {
-                var book = await _bookRepository.GetBookById(borrowedBook.Book_BookID);
-                if (book == null)
-                    throw new BorrowExceptions.ReturnBorrowedBookException("Invalid Book.");
+                try
+                {
+                    var book = await _bookRepository.GetBookById(borrowedBook.Book_BookID);
+                    if (book == null)
+                        throw new BorrowExceptions.ReturnBorrowedBookException("Invalid Book.");
 
-                var borrowedRec = await _borrowRepository.GetBorrowedBookByMembershipID_BookID(borrowedBook.Membership_MembershipID, borrowedBook.Book_BookID);
-                if (borrowedRec == null)
-                    throw new BorrowExceptions.ReturnBorrowedBookException("The book is not borrowed by the member.");
+                    var borrowedRec = await _borrowRepository.GetBorrowedBookByMembershipID_BookID(borrowedBook.Membership_MembershipID, borrowedBook.Book_BookID);
+                    if (borrowedRec == null)
+                        throw new BorrowExceptions.ReturnBorrowedBookException("The book is not borrowed by the member.");
 
-                borrowedRec.ReturnedDate = DateTime.Now;
-                borrowedRec.IsReturned = true;
+                    borrowedRec.ReturnedDate = DateTime.Now;
+                    borrowedRec.IsReturned = true;
 
-                if (!await _borrowRepository.UpdateBorrowedBook(borrowedRec))
-                    throw new BorrowExceptions.ReturnBorrowedBookException("Failed to update the borrowed book.");
+                    if (!await _borrowRepository.UpdateBorrowedBook(borrowedRec))
+                        throw new BorrowExceptions.ReturnBorrowedBookException("Failed to update the borrowed book.");
 
-                book.AvailableQuantity++;
-                if (!await _bookRepository.UpdateBook(book))
-                    throw new BorrowExceptions.ReturnBorrowedBookException("Failed to update the book quantity.");
+                    book.AvailableQuantity++;
+                    if (!await _bookRepository.UpdateBook(book))
+                        throw new BorrowExceptions.ReturnBorrowedBookException("Failed to update the book quantity.");
 
-                return Ok("Borrowed book returned successfully.");
-            }
-            catch (BorrowExceptions.ReturnBorrowedBookException ex)
-            {
-                return BadRequest(ex.Message);
+                    transaction.Commit();
+                    await _context.SaveChangesAsync();
+
+                    return Ok(true);
+                }
+                catch (BorrowExceptions.ReturnBorrowedBookException ex)
+                {
+                    transaction.Rollback();
+                    return BadRequest(ex.Message);
+                }
+                catch (Exception)
+                {
+                    transaction.Rollback();
+                    return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred.");
+                }
             }
         }
+
     }
 }

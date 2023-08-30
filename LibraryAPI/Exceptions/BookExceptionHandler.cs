@@ -36,6 +36,12 @@ namespace LibraryAPI.Exceptions
                 errorType = "BooksByTitleNotFound";
                 context.HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             }
+            else if (context.Exception is BookExceptions.BooksByGenreNotFoundException)
+            {
+                message = context.Exception.Message;
+                errorType = "BooksByGenreNotFound";
+                context.HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+            }
             else if (context.Exception is BookExceptions.BooksByAuthorNameNotFoundException)
             {
                 message = context.Exception.Message;

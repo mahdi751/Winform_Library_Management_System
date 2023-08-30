@@ -14,7 +14,7 @@ namespace LibraryAPI.Models
         public string MembershipName { get; set; }
         public int MaxBorrowLimit { get; set; }
         public int RemainingBorrowAbility { get; set; }
-        public int MembershipPrice { get; set; }
+        public double MembershipPrice { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public int User_UserID { get; set; }

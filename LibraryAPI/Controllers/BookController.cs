@@ -72,6 +72,26 @@ namespace LibraryAPI.Controllers
             }
         }
 
+        [HttpGet("Books/BookGenre/{bookGenre}")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<Book>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetBooksByGenre(string bookGenre)
+        {
+            try
+            {
+                var books = await _bookRepository.GetAllBooksByGenre(bookGenre);
+                if (books == null)
+                {
+                    throw new BookExceptions.BooksByGenreNotFoundException("There are no books with that genre!");
+                }
+                return Ok(books);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while fetching books by genre.", ex);
+            }
+        }
+
         [HttpGet("Books/AuthorName/{authorName}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<Book>))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

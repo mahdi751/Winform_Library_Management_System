@@ -64,7 +64,7 @@ namespace LibraryAPI.Controllers
 
             if (await _accountRepository.EmailExists(newUserDto.Email))
             {
-                throw new AccountExceptions.EmailTakenException("Email is taken!");
+                throw new AccountExceptions.EmailTakenException("Email already in use for another account!");
             }
 
             byte[] passwordSalt;
@@ -141,5 +141,39 @@ namespace LibraryAPI.Controllers
             }
             return id;
         }
+
+        [HttpGet("User/username/{id}")]
+        public async Task<ActionResult<string>> GetUsernameID(int id)
+        {
+            var username = await _accountRepository.GetUsernamaByID(id);
+            return username;
+        }
+
+        [HttpDelete("Delete/{userid}")]
+        public async Task<ActionResult<bool>> RemoveUser(int userid)
+        {
+            var user = await _accountRepository.GetUserByID(userid);
+            if (user != null)
+                return await _accountRepository.RemoveUser(user);
+            else
+                return BadRequest();
+        }
+
+        [HttpPut("Update")]
+        public async Task<ActionResult<bool>> UpdateUser(User user)
+        {
+            if (await _accountRepository.UserExits(user))
+            {
+                throw new AccountExceptions.UsernameTakenException("Username is taken!");
+            }
+
+            if (await _accountRepository.EmailExists(user))
+            {
+                throw new AccountExceptions.EmailTakenException("Email already in use for another account!");
+            }
+
+            return await _accountRepository.UpdateUser(user);
+        }
+
     }
 }

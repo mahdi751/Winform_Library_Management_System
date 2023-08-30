@@ -14,6 +14,11 @@ namespace LibraryAPI.Exceptions
             public BooksByTitleNotFoundException(string message) : base(message) { }
         }
 
+        public class BooksByGenreNotFoundException : Exception
+        {
+            public BooksByGenreNotFoundException(string message) : base(message) { }
+        }
+
         public class BooksByAuthorNameNotFoundException : Exception
         {
             public BooksByAuthorNameNotFoundException(string message) : base(message) { }

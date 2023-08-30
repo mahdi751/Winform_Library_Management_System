@@ -3,6 +3,8 @@ using LibraryAPI.Interfaces;
 using LibraryAPI.Models;
 using LibraryAPI.DTOs;
 using LibraryAPI.Exceptions;
+using Microsoft.EntityFrameworkCore;
+using LibraryAPI.Data;
 
 namespace LibraryAPI.Controllers
 {
@@ -12,11 +14,34 @@ namespace LibraryAPI.Controllers
     {
         private readonly IMembershipRepository _membershipRepository;
         private readonly IPaymentRepository _paymentRepository;
+        private readonly DataContext _context;
 
-        public MembershipController(IMembershipRepository membershipRepository, IPaymentRepository paymentRepository)
+        public MembershipController(IMembershipRepository membershipRepository, IPaymentRepository paymentRepository,DataContext context)
         {
             _membershipRepository = membershipRepository;
             _paymentRepository = paymentRepository;
+            _context = context;
+        }
+
+        [HttpGet("GetLastMembership/{userID}")]
+        public async Task<IActionResult> GetLastMembership(int userID)
+        {
+            var membership = await _membershipRepository.GetLastMembershipByUserID(userID);
+            return Ok(membership);
+        }
+
+        [HttpGet("GetMembershipRemainingBorrowAbility/{membershiID}")]
+        public async Task<IActionResult> GetMembershipRemainingBorrowAbility(int membershiID)
+        {
+            var RemainingBorrowAbility = await _membershipRepository.GetMembershipRemainingBorrowAbility(membershiID);
+            return Ok(RemainingBorrowAbility);
+        }
+
+        [HttpGet("GetUsernameByMembership/{membershipID}")]
+        public async Task<IActionResult> GetUsernameByMembership(int membershipID)
+        {
+            var username = await _membershipRepository.GetUsernameByMembershipID(membershipID);
+            return Ok(username);
         }
 
         [HttpGet("GetMembershipByUserID/{userID}")]
@@ -55,95 +80,97 @@ namespace LibraryAPI.Controllers
         [HttpPost("MembershipSubscription")]
         public async Task<IActionResult> SubscribeToMembership([FromBody] MembershipDTO newMembershipDTO)
         {
-            try
+            using (var transaction = await _context.Database.BeginTransactionAsync())
             {
-                if (!ModelState.IsValid || newMembershipDTO == null)
+                try
                 {
-                    throw new MembershipExceptions.MembershipCreationException("Invalid membership data.");
-                }
+                    if (!ModelState.IsValid || newMembershipDTO == null)
+                    {
+                        throw new MembershipExceptions.MembershipCreationException("Invalid membership data.");
+                    }
 
-                var membership = new Membership
-                {
-                    MembershipName = newMembershipDTO.MembershipName,
-                    MaxBorrowLimit = newMembershipDTO.MaxBorrowLimit,
-                    MembershipPrice = newMembershipDTO.MembershipPrice,
-                    RemainingBorrowAbility = newMembershipDTO.MaxBorrowLimit,
-                    User_UserID = newMembershipDTO.User_UserID,
-                    StartDate = DateTime.Today,
-                    EndDate = DateTime.Today.AddDays(30)
-                };
+                    var membership = new Membership
+                    {
+                        MembershipName = newMembershipDTO.MembershipName,
+                        MaxBorrowLimit = newMembershipDTO.MaxBorrowLimit,
+                        MembershipPrice = newMembershipDTO.MembershipPrice,
+                        RemainingBorrowAbility = newMembershipDTO.MaxBorrowLimit,
+                        User_UserID = newMembershipDTO.User_UserID,
+                        StartDate = DateTime.Today,
+                        EndDate = DateTime.Today.AddDays(30)
+                    };
 
-                var membershipSuccess = await _membershipRepository.AddMembership(membership);
+                    var membershipSuccess = await _membershipRepository.AddMembership(membership);
 
-                if (!membershipSuccess)
-                {
-                    throw new MembershipExceptions.MembershipCreationException("Failed to insert membership data.");
-                }
+                    var payment = new PaymentHistory
+                    {
+                        Amount = membership.MembershipPrice,
+                        PaymentDate = DateTime.Today,
+                        PaymentType = "membership",
+                        User_UserID = membership.User_UserID
+                    };
 
-                var payment = new PaymentHistory
-                {
-                    Amount = membership.MembershipPrice,
-                    PaymentDate = DateTime.Today,
-                    PaymentType = "membership",
-                    User_UserID = membership.User_UserID
-                };
+                    var paymentSuccess = await _paymentRepository.PayFines(payment);
 
-                var paymentSuccess = await _paymentRepository.PayFines(payment);
-                if(!paymentSuccess)
-                {
-                    throw new MembershipExceptions.PaymentHistoryException("Couldn't insert the payment!");
-                }
+                    await transaction.CommitAsync();
 
-                if(paymentSuccess && membershipSuccess)
+                    await _context.SaveChangesAsync();
                     return Ok(membership);
-                else 
-                    return BadRequest();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"An unexpected error occurred: {ex.Message}");
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw new MembershipExceptions.MembershipCreationException("Internal server error!");
+                }
             }
         }
 
 
-        [HttpPut("RenewCurrentMembership/{userid}")]
-        public async Task<IActionResult> RenewMembership(int userid)
+
+        [HttpPut("RenewCurrentMembership")]
+        public async Task<IActionResult> RenewMembership([FromBody] int userid)
         {
-            try
+            using (var transaction = await _context.Database.BeginTransactionAsync())
             {
-                var membership = await _membershipRepository.GetLastMembershipByUserID(userid);
-                membership.EndDate = DateTime.Today.AddDays(30);
-                membership.RemainingBorrowAbility = membership.MaxBorrowLimit;
-
-                var membershipSuccess = await _membershipRepository.UpdateMembership(membership);
-
-                if (!membershipSuccess)
+                try
                 {
-                    throw new MembershipExceptions.MembershipRenewalException("There was an error in updating the membership!");
+                    var membership = await _membershipRepository.GetLastMembershipByUserID(userid);
+                    membership.EndDate = DateTime.Today.AddDays(30);
+                    membership.RemainingBorrowAbility = membership.MaxBorrowLimit;
+
+                    var membershipSuccess = await _membershipRepository.UpdateMembership(membership);
+
+                    if (!membershipSuccess)
+                    {
+                        throw new MembershipExceptions.MembershipRenewalException("There was an error in updating the membership!");
+                    }
+
+                    var payment = new PaymentHistory
+                    {
+                        Amount = membership.MembershipPrice,
+                        PaymentDate = DateTime.Today,
+                        PaymentType = "membership",
+                        User_UserID = membership.User_UserID
+                    };
+
+                    var paymentSuccess = await _paymentRepository.PayFines(payment);
+                    if (!paymentSuccess)
+                    {
+                        throw new MembershipExceptions.PaymentHistoryException("Couldn't insert the payment!");
+                    }
+
+                    await transaction.CommitAsync();
+
+                    await _context.SaveChangesAsync();
+                    return Ok(membership);
                 }
-
-                var payment = new PaymentHistory
+                catch (Exception ex)
                 {
-                    Amount = membership.MembershipPrice,
-                    PaymentDate = DateTime.Today,
-                    PaymentType = "membership",
-                    User_UserID = membership.User_UserID
-                };
-
-                var paymentSuccess = await _paymentRepository.PayFines(payment);
-                if (!paymentSuccess)
-                {
-                    throw new MembershipExceptions.PaymentHistoryException("Couldn't insert the payment!");
+                    await transaction.RollbackAsync();
+                    return StatusCode(500, $"An unexpected error occurred: {ex.Message}");
                 }
-
-                return Ok(membership);
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"An unexpected error occurred: {ex.Message}");
-            }
-            
         }
-    }
 
+    }
 }

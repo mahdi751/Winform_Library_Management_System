@@ -17,7 +17,7 @@ namespace LibraryAPI.Repository
         public async Task<bool> PayFines(PaymentHistory paymentHistory)
         {
             await _context.PaymentHistories.AddAsync(paymentHistory);
-            return await Save();
+            return true;
 
         }
 
@@ -35,7 +35,7 @@ namespace LibraryAPI.Repository
                    .ToListAsync();
         }
 
-        public async Task<decimal> GetTotalPayments()
+        public async Task<double> GetTotalPayments()
         {
             return await _context.PaymentHistories
                 .SumAsync(ph => ph.Amount);

@@ -23,6 +23,10 @@ namespace LibraryAPI.Exceptions
         {
             public GetUnReturnedBooksException(string message) : base(message) { }
         }
+        public class GetReturnedBooksException : Exception
+        {
+            public GetReturnedBooksException(string message) : base(message) { }
+        }
 
         public class GetCurrentOverduePaymentsException : Exception
         {

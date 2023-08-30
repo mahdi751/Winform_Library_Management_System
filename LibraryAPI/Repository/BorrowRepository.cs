@@ -17,6 +17,26 @@ namespace LibraryAPI.Repository
             _context = context;
         }
 
+        public async Task<IEnumerable<Borrow>> GetBookBorrowRecords(int bookid, int userid)
+        {
+            List<int> memberships = await _context.Memberships
+                .Where(m => m.User_UserID == userid)
+                .Select(m => m.MembershipID)
+                .ToListAsync();
+
+            return await _context.Borrows
+                .Where(b => b.Book_BookID == bookid && memberships.Contains(b.Membership_MembershipID))
+                .ToListAsync();   
+        }
+
+        public async Task<Borrow> GetBorrowRecordByMembership(int bookid, int membershipID)
+        {
+            return await _context.Borrows
+                .Where(b => b.Book_BookID == bookid && membershipID == b.Membership_MembershipID)
+                .FirstOrDefaultAsync();
+
+        }
+
         public async Task<bool> BorrowBook(Borrow borrowedBook)
         {
             await _context.Borrows.AddAsync(borrowedBook);
@@ -134,6 +154,21 @@ namespace LibraryAPI.Repository
                 .ToListAsync();
 
             return unReturnedBooks;
+        }
+
+        public async Task<ICollection<Book>> GetReturnedBooks(int membershipID)
+        {
+            List<int> returned = await _context.Borrows
+               .Where(b => b.Membership_MembershipID == membershipID
+                        && b.IsReturned)
+               .Select(b => b.Book_BookID)
+               .ToListAsync();
+
+            List<Book> ReturnedBooks = await _context.Books
+                .Where(b => returned.Contains(b.Bookid))
+                .ToListAsync();
+
+            return ReturnedBooks;
         }
 
         public async Task<ICollection<Book>> GetBorrowedBooks(int membershipID)

@@ -8,7 +8,7 @@ namespace LibraryAPI.Models
         public int PaymentID { get; set; }
         public int User_UserID { get; set; }
         public DateTime PaymentDate { get; set; }
-        public int Amount { get; set; }
+        public double Amount { get; set; }
         public string PaymentType { get; set; }
 
     }

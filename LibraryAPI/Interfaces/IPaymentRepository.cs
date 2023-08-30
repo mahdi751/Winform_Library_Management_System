@@ -7,6 +7,6 @@ namespace LibraryAPI.Interfaces
         public Task<bool> PayFines(PaymentHistory paymentHistory);
         public Task<ICollection<PaymentHistory>> GetPaymentHistoriesByType(int userid,string type);
         public Task<ICollection<PaymentHistory>> GetPaymentHistories(int userid);
-        public Task<decimal> GetTotalPayments();
+        public Task<double> GetTotalPayments();
     }
 }

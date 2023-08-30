@@ -48,6 +48,12 @@ namespace LibraryAPI.Exceptions
                 errorType = "GetUnReturnedBooks";
                 context.HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             }
+            else if (context.Exception is BorrowExceptions.GetReturnedBooksException)
+            {
+                message = context.Exception.Message;
+                errorType = "GetReturnedBooks";
+                context.HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+            }
             else if (context.Exception is BorrowExceptions.GetCurrentOverduePaymentsException)
             {
                 message = context.Exception.Message;

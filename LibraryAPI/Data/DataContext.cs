@@ -31,7 +31,7 @@ namespace LibraryAPI.Data
                 .HasKey(ba => new { ba.Book_BookID, ba.Author_AuthorID });
 
             modelBuilder.Entity<Review>()
-                .HasKey(r => new { r.Book_BookID, r.Membership_MembershipID });
+                .HasKey(r => new { r.ReviewID});
 
             modelBuilder.Entity<Borrow>()
                 .HasKey(b => new { b.Book_BookID, b.Membership_MembershipID });

@@ -2,6 +2,7 @@
 using LibraryAPI.Interfaces;
 using LibraryAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace LibraryAPI.Repository
 {
@@ -22,8 +23,15 @@ namespace LibraryAPI.Repository
 
         public async Task<ICollection<Review>> GetAllReviewsOfaBook(int bookID)
         {
-            return await _context.Reviews.Where(r => r.Book_BookID == bookID).ToListAsync();
+            return await _context.Reviews
+                .Where(r => r.Book_BookID == bookID)
+                .ToListAsync();
         }
+
+
+
+
+
 
         public async Task<Review> GetReviewByBookID_UserID(int bookID, int userID)
         {
