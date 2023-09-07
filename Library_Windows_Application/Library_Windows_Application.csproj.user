@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Compile Update="BooksNavigationControls\BorrowControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="BooksNavigationControls\ReviewControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="BooksNavigationControls\ReviewsDisplay.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="BorrowedBooksControls\BorrowedBooksDisplay.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="BorrowedBooksControls\CurrentReturnedBorrowedBooksDisplay.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="BorrowedBooksControls\CurrentUnReturnedBorrowedBooksDisplay.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="DashboardNavigation\BookListingControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="DashboardNavigation\BooksControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="DashboardNavigation\BorrowedBooks.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="DashboardNavigation\MembershipControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="DashboardNavigation\PaymentHistoryControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="DashboardNavigation\ReturnBooksControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Forms\HomeForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\LoginForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\MembershipForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\RegisterForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="MembershipDisplayControls\PlanAactivatedControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="MembershipDisplayControls\PlanBactivatedControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="MembershipDisplayControls\PlanCactivatedControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="PaymentControls\DetailsDisplayControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="PaymentControls\FinesDisplayControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>

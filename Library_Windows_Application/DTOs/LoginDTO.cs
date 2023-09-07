@@ -1,0 +1,8 @@
+﻿namespace Library_Windows_Application.DTOs
+{
+    public class LoginDTO
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
+    }
+}

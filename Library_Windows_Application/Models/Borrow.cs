@@ -1,0 +1,21 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Library_Windows_Application.Models
+{
+    public class Borrow
+    {
+        public int Membership_MembershipID { get; set; }
+        public int Book_BookID { get; set; }
+        public DateTime PickupDate { get; set; }
+        public DateTime ReturnDate { get; set; }
+        public int Overduefine { get; set; }
+        public bool IsReturned { get; set; }
+        public DateTime ReturnedDate { get; set; }
+
+    }
+}
