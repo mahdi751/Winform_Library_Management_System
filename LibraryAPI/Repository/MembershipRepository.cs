@@ -46,7 +46,7 @@ namespace LibraryAPI.Repository
             DateTime currentDate = DateTime.Today;
 
             var membership = await _context.Memberships
-                .Where(m => m.MembershipID == membershipID && m.EndDate >= currentDate)
+                .Where(m => m.MembershipID == membershipID)
                 .Select(m => m.EndDate)
                 .FirstOrDefaultAsync();
 
@@ -80,7 +80,7 @@ namespace LibraryAPI.Repository
         {
             return await _context.Memberships
                 .Where(m => m.User_UserID == userID)
-                .OrderByDescending(m => m.EndDate)
+                .OrderByDescending(m => m.MembershipID)
                 .FirstOrDefaultAsync();
         }
 

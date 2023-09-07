@@ -87,7 +87,7 @@ namespace LibraryAPI.Controllers
             }
         }
 
-        [HttpPost("UpdateBorrowBookRecord")]
+        [HttpPut("UpdateBorrowBookRecord")]
         public async Task<ActionResult<bool>> UpdateBorrowBookRecord([FromBody] BorrowDTO borrowedBook)
         {
             try
@@ -144,53 +144,6 @@ namespace LibraryAPI.Controllers
                     return false;
             }
             catch (BorrowExceptions.BorrowBookException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
-        [HttpGet("CalculateAllOverdueFines")]
-        public async Task<IActionResult> CalculateAllOverdueFines()
-        {
-            try
-            {
-                if (!await _borrowRepository.CalculateAllOverdueFines())
-                    throw new BorrowExceptions.CalculateOverdueFinesException("Failed to calculate overdue fines.");
-
-                return Ok("Overdue fines calculated and updated successfully.");
-            }
-            catch (BorrowExceptions.CalculateOverdueFinesException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
-        [HttpGet("GetCurrentOverduePayments/{membershipID}")]
-        public async Task<IActionResult> GetCurrentOverduePayments(int membershipID)
-        {
-            try
-            {
-                if (!await _borrowRepository.CalculateAllOverdueFines())
-                    throw new BorrowExceptions.CalculateOverdueFinesException("Failed to calculate overdue fines.");
-
-                var overduePayments = await _borrowRepository.GetCurrentTotalOverduePayments(membershipID);
-                return Ok(overduePayments);
-            }
-            catch (BorrowExceptions.GetCurrentOverduePaymentsException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
-        [HttpGet("GetOverdueBooks/{membershipID}")]
-        public async Task<IActionResult> GetOverdueBooks(int membershipID)
-        {
-            try
-            {
-                var overdueBooks = await _borrowRepository.GetOverdueBooks(membershipID);
-                return Ok(overdueBooks);
-            }
-            catch (BorrowExceptions.GetOverdueBooksException ex)
             {
                 return BadRequest(ex.Message);
             }
@@ -272,18 +225,15 @@ namespace LibraryAPI.Controllers
             return Ok(borrowRec);
         }
 
-        [HttpGet("GetCurrentOverduePaymentsDetails/{membershipID}")]
-        public async Task<IActionResult> GetCurrentOverduePaymentsDetails(int membershipID)
+        [HttpGet("GetOverdueBooks/{membershipID}")]
+        public async Task<IActionResult> GetOverdueBooks(int membershipID)
         {
             try
             {
-                if (!await _borrowRepository.CalculateAllOverdueFines())
-                    throw new BorrowExceptions.CalculateOverdueFinesException("Failed to calculate overdue fines.");
-
-                var overduePayments = await _borrowRepository.GetOverduePaymentsDetails(membershipID);
-                return Ok(overduePayments);
+                var overdueBooks = await _borrowRepository.GetOverdueBooks(membershipID);
+                return Ok(overdueBooks);
             }
-            catch (BorrowExceptions.GetCurrentOverduePaymentsException ex)
+            catch (BorrowExceptions.GetOverdueBooksException ex)
             {
                 return BadRequest(ex.Message);
             }

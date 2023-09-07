@@ -11,9 +11,11 @@ namespace LibraryAPI.Repository
     public class BorrowRepository : IBorrowRepository
     {
         private readonly DataContext _context;
+        private readonly IPaymentRepository _paymentRepository;
 
-        public BorrowRepository(DataContext context)
+        public BorrowRepository(DataContext context,IPaymentRepository paymentRepository)
         {
+            _paymentRepository = paymentRepository;
             _context = context;
         }
 
@@ -43,88 +45,6 @@ namespace LibraryAPI.Repository
             return await Save();
         }
 
-        public async Task<bool> CalculateAllOverdueFines()
-        {
-            var overdueBorrows = await _context.Borrows
-                .Where(b => !b.IsReturned && b.ReturnDate < DateTime.Today)
-                .ToListAsync();
-
-            if (overdueBorrows.Count == 0)
-            {
-                return true;
-            }
-
-            foreach (var borrow in overdueBorrows)
-            {
-                var overdueDays = (int)(DateTime.Today - borrow.ReturnDate).TotalDays;
-                borrow.Overduefine = overdueDays;
-
-                _context.Borrows.Update(borrow);
-            }
-
-            await _context.SaveChangesAsync();
-
-            return true;
-        }
-
-        public async Task<bool> UpdateOverdueFines(int userid)
-        {
-            var overdueFinesRecs = await _context.Borrows.Where
-                                    (br => _context.Memberships.Any(
-                                    m => m.User_UserID == userid &&
-                                    m.MembershipID == br.Membership_MembershipID &&
-                                    br.Overduefine > 0))
-                                    .ToListAsync();
-
-            if (overdueFinesRecs.Count == 0)
-                return true;
-
-            foreach (var borrowed in overdueFinesRecs)
-            {
-                borrowed.Overduefine = 0;
-
-                _context.Borrows.Update(borrowed);
-            }
-
-            if (!await Save())
-                return false;
-
-            return true;
-
-        }
-
-        public async Task<decimal> GetCurrentTotalOverduePayments(int membershipID)
-        {
-            return await _context.Borrows.Where(b => b.Membership_MembershipID == membershipID)
-                                         .SumAsync(b => b.Overduefine);
-                                   
-        }
-
-        public async Task<ICollection<OverdueBooksDetailsDTO>> GetOverduePaymentsDetails(int membershipID)
-        {
-            await CalculateAllOverdueFines();
-
-            var booksOverdueDetails = await _context.Borrows
-                .Where(b => !b.IsReturned 
-                            && b.ReturnDate < DateTime.Today
-                            && b.Membership_MembershipID == membershipID)
-                .Join(_context.Books,
-                      borrow => borrow.Book_BookID,
-                      book => book.Bookid,
-                      (borrow, book) => new OverdueBooksDetailsDTO
-                      {
-                          Title = book.Booktitle,
-                          Isbn = book.Isbn,
-                          OverdueFine = borrow.Overduefine,
-                          CurrentDate = DateTime.Today,
-                          ReturnDate = borrow.ReturnDate,
-                          DaysLate = (int)(DateTime.Today - borrow.ReturnDate).TotalDays
-                      })
-                .ToListAsync();
-
-            return booksOverdueDetails;
-        }
-
         public async Task<ICollection<Book>> GetOverdueBooks(int membershipID)
         {
             List<int> overdueBookIds = await _context.Borrows
@@ -141,65 +61,137 @@ namespace LibraryAPI.Repository
             return overdueBooks;
         }
 
-        public async Task<ICollection<Book>> GetUnReturnedBooks(int membershipID)
+        public async Task<ICollection<BorrowDetailsDTO>> GetUnReturnedBooks(int membershipID)
         {
-            List<int> unreturned = await _context.Borrows
-               .Where(b => b.Membership_MembershipID == membershipID
-                        && !b.IsReturned)
-               .Select(b => b.Book_BookID)
-               .ToListAsync();
+            var success = await _paymentRepository.CalculateOverdueFinesByMembershipID(membershipID);
+            if (success)
+            {
+                var unreturned = await _context.Borrows
+                .Where(br => br.Membership_MembershipID == membershipID && !br.IsReturned)
+                .Join(_context.Books,
+                book => book.Book_BookID,
+                borrow => borrow.Bookid,
+                (borrow, book) => new BorrowDetailsDTO
+                {
+                    Bookid = book.Bookid,
+                    Booktitle = book.Booktitle,
+                    Genre = book.Genre,
 
-            List<Book> unReturnedBooks = await _context.Books
-                .Where(b => unreturned.Contains(b.Bookid))
+                    AuthorName = _context.BookAuthors
+                        .Where(ba => ba.Book_BookID == book.Bookid)
+                        .Join(_context.Authors,
+                        ba => ba.Author_AuthorID,
+                        author => author.AuthorID,
+                        (ba, author) => author.AuthorName)
+                        .FirstOrDefault(),
+
+                    IsReturned = borrow.IsReturned,
+                    PickupDate = borrow.PickupDate,
+                    ReturnDate = borrow.ReturnDate,
+                    Fine = borrow.Overduefine
+                })
                 .ToListAsync();
 
-            return unReturnedBooks;
+                return unreturned;
+            }
+
+            return null;
         }
 
-        public async Task<ICollection<Book>> GetReturnedBooks(int membershipID)
+        public async Task<ICollection<BorrowDetailsDTO>> GetReturnedBooks(int membershipID)
         {
-            List<int> returned = await _context.Borrows
-               .Where(b => b.Membership_MembershipID == membershipID
-                        && b.IsReturned)
-               .Select(b => b.Book_BookID)
+            var returned = await _context.Borrows
+               .Where(br => br.Membership_MembershipID == membershipID && br.IsReturned)
+               .Join(_context.Books,
+               book => book.Book_BookID,
+               borrow => borrow.Bookid,
+               (borrow, book) => new BorrowDetailsDTO
+               {
+                   Bookid = book.Bookid,
+                   Booktitle = book.Booktitle,
+                   Genre = book.Genre,
+
+                   AuthorName = _context.BookAuthors
+                       .Where(ba => ba.Book_BookID == book.Bookid)
+                       .Join(_context.Authors,
+                       ba => ba.Author_AuthorID,
+                       author => author.AuthorID,
+                       (ba, author) => author.AuthorName)
+                       .FirstOrDefault(),
+
+                   IsReturned = borrow.IsReturned,
+                   PickupDate = borrow.PickupDate,
+                   ReturnedDate = borrow.ReturnedDate
+               })
                .ToListAsync();
 
-            List<Book> ReturnedBooks = await _context.Books
-                .Where(b => returned.Contains(b.Bookid))
-                .ToListAsync();
+            return returned;
 
-            return ReturnedBooks;
         }
 
-        public async Task<ICollection<Book>> GetBorrowedBooks(int membershipID)
+        public async Task<ICollection<BorrowDetailsDTO>> GetBorrowedBooks(int membershipID)
         {
-            List<int> borrowList = await _context.Borrows
-               .Where(b => b.Membership_MembershipID == membershipID)
-               .Select(b => b.Book_BookID)
-               .ToListAsync();
+            var borrowList = await _context.Borrows
+                .Where(br => br.Membership_MembershipID == membershipID)
+                .Join(_context.Books,
+                book => book.Book_BookID,
+                borrow => borrow.Bookid,
+                (borrow, book) => new BorrowDetailsDTO
+                {
+                    Bookid = book.Bookid,
+                    Booktitle = book.Booktitle,
+                    Genre = book.Genre,
 
-            List<Book> borrowedBooks = await _context.Books
-                .Where(b => borrowList.Contains(b.Bookid))
+                    AuthorName = _context.BookAuthors
+                        .Where(ba => ba.Book_BookID == book.Bookid)
+                        .Join(_context.Authors,
+                        ba => ba.Author_AuthorID,
+                        author => author.AuthorID,
+                        (ba, author) => author.AuthorName)
+                        .FirstOrDefault(),
+
+                    IsReturned = borrow.IsReturned,
+                    PickupDate = borrow.PickupDate,
+                    ReturnedDate = borrow.ReturnedDate,
+                    ReturnDate = borrow.ReturnDate
+                })
                 .ToListAsync();
 
-            return borrowedBooks;
+            return borrowList;
         }
 
-        public async Task<ICollection<Book>> GetBorrowedBooksByUser(int userID)
+        public async Task<ICollection<BorrowDetailsDTO>> GetBorrowedBooksByUser(int userID)
         {
-            List<int> borrowList = await _context.Borrows
-                .Where(br => _context.Memberships.Any(
+            var borrowList = await _context.Borrows
+               .Where(br => _context.Memberships.Any(
                     m => m.User_UserID == userID &&
                     br.Membership_MembershipID == m.MembershipID
                     ))
-                .Select(br => br.Book_BookID)
-                .ToListAsync();
+               .Join(_context.Books,
+               book => book.Book_BookID,
+               borrow => borrow.Bookid,
+               (borrow, book) => new BorrowDetailsDTO
+               {
+                   Bookid = book.Bookid,
+                   Booktitle = book.Booktitle,
+                   Genre = book.Genre,
 
-            List<Book> borrowedBooks = await _context.Books
-                .Where(b => borrowList.Contains(b.Bookid))
-                .ToListAsync();
+                   AuthorName = _context.BookAuthors
+                       .Where(ba => ba.Book_BookID == book.Bookid)
+                       .Join(_context.Authors,
+                       ba => ba.Author_AuthorID,
+                       author => author.AuthorID,
+                       (ba, author) => author.AuthorName)
+                       .FirstOrDefault(),
 
-            return borrowedBooks;
+                   IsReturned = borrow.IsReturned,
+                   PickupDate = borrow.PickupDate,
+                   ReturnedDate = borrow.ReturnedDate,
+                   ReturnDate = borrow.ReturnDate
+               })
+               .ToListAsync();
+
+            return borrowList;
         }
 
         public async Task<bool> UpdateBorrowedBook(Borrow borrowedBook)

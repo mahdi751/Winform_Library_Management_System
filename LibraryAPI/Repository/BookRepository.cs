@@ -1,4 +1,5 @@
 ﻿using LibraryAPI.Data;
+using LibraryAPI.DTOs;
 using LibraryAPI.Interfaces;
 using LibraryAPI.Models;
 using Microsoft.EntityFrameworkCore;
@@ -19,33 +20,34 @@ namespace LibraryAPI.Repository
             return await Save();
         }
 
-        public async Task<ICollection<Book>> GetAllBooks()
+        public async Task<int> GetBookAvailableQuantity(int bookid)
         {
-            return await _context.Books.ToListAsync();
+            return await _context.Books.Where(b => b.Bookid == bookid).Select(b => b.AvailableQuantity).FirstOrDefaultAsync();
         }
 
-        public async Task<ICollection<Book>> GetAllBooksByTitle(string title)
+        public async Task<ICollection<BookDetailsDTO>> GetAllBooks()
         {
-            return await _context.Books.Where(b => b.Booktitle.ToLower().Contains(title.ToLower())).ToListAsync();
-        }
+            var booksDetails = await _context.Books
+                .Select(book => new BookDetailsDTO
+                {
+                    Bookid = book.Bookid,
+                    AvailableQuantity = book.AvailableQuantity,
+                    Booktitle = book.Booktitle,
+                    Publicationdate = book.Publicationdate,
+                    Genre = book.Genre,
+                    Publishername = book.Publishername,
 
-        public async Task<ICollection<Book>> GetAllBooksByGenre(string genre)
-        {
-            return await _context.Books.Where(b => b.Genre.ToLower().Contains(genre.ToLower())).ToListAsync();
-        }
-
-        public async Task<ICollection<Book>> GetAllBooksByAuthorName(string name)
-        {
-            var booksByAuthor = await _context.Books
-                .Where(b => _context.BookAuthors
-                    .Any(ba => ba.Book_BookID == b.Bookid
-                        && ba.Author_AuthorID == _context.Authors
-                            .Where(a => a.AuthorName.ToLower().Contains(name.ToLower()))
-                            .Select(a => a.AuthorID)
-                            .FirstOrDefault()))
+                    AuthorName = _context.BookAuthors
+                    .Where(ba => ba.Book_BookID == book.Bookid)
+                    .Join(_context.Authors,
+                    ba => ba.Author_AuthorID,
+                    author => author.AuthorID,
+                    (ba, author) => author.AuthorName)
+                    .FirstOrDefault()
+                })
                 .ToListAsync();
 
-            return booksByAuthor;
+            return booksDetails;
         }
 
         public async Task<bool> Save()
@@ -69,5 +71,88 @@ namespace LibraryAPI.Repository
             _context.Books.Update(book);
             return await Save();
         }
+
+        public async Task<ICollection<BookDetailsDTO>> GetAllBooksByTitle(string title)
+        {
+            var booksDetails = await _context.Books
+                .Where(b => b.Booktitle.ToLower().Contains(title.ToLower()))
+                .Select(book => new BookDetailsDTO
+                {
+                    Bookid = book.Bookid,
+                    AvailableQuantity = book.AvailableQuantity,
+                    Booktitle = book.Booktitle,
+                    Publicationdate = book.Publicationdate,
+                    Genre = book.Genre,
+                    Publishername = book.Publishername,
+
+                    AuthorName = _context.BookAuthors
+                    .Where(ba => ba.Book_BookID == book.Bookid)
+                    .Join(_context.Authors,
+                    ba => ba.Author_AuthorID,
+                    author => author.AuthorID,
+                    (ba, author) => author.AuthorName)
+                    .FirstOrDefault()
+                })
+                .ToListAsync();
+
+            return booksDetails;
+        }
+        public async Task<ICollection<BookDetailsDTO>> GetAllBooksByGenre(string genre)
+        {
+            var booksDetails = await _context.Books
+                .Where(b => b.Genre.ToLower()
+                .Contains(genre.ToLower()))
+                .Select(book => new BookDetailsDTO
+                {
+                    Bookid = book.Bookid,
+                    AvailableQuantity = book.AvailableQuantity,
+                    Booktitle = book.Booktitle,
+                    Publicationdate = book.Publicationdate,
+                    Genre = book.Genre,
+                    Publishername = book.Publishername,
+
+                    AuthorName = _context.BookAuthors
+                    .Where(ba => ba.Book_BookID == book.Bookid)
+                    .Join(_context.Authors,
+                    ba => ba.Author_AuthorID,
+                    author => author.AuthorID,
+                    (ba,author) => author.AuthorName)
+                    .FirstOrDefault()
+                })
+                .ToListAsync();
+
+            return booksDetails;
+        }
+        public async Task<ICollection<BookDetailsDTO>> GetAllBooksByAuthorName(string name)
+        {
+            var booksDetails = await _context.Books
+                .Where(b => _context.BookAuthors
+                    .Any(ba => ba.Book_BookID == b.Bookid
+                        && ba.Author_AuthorID == _context.Authors
+                            .Where(a => a.AuthorName.ToLower().Contains(name.ToLower()))
+                            .Select(a => a.AuthorID)
+                            .FirstOrDefault()))
+                .Select(book => new BookDetailsDTO
+                {
+                    Bookid = book.Bookid,
+                    AvailableQuantity = book.AvailableQuantity,
+                    Booktitle = book.Booktitle,
+                    Publicationdate = book.Publicationdate,
+                    Genre = book.Genre,
+                    Publishername = book.Publishername,
+
+                    AuthorName = _context.BookAuthors
+                    .Where(ba => ba.Book_BookID == book.Bookid)
+                    .Join(_context.Authors,
+                    bookAuthor => bookAuthor.Author_AuthorID,
+                    author => author.AuthorID,
+                    (bookAuthor, author) => author.AuthorName)
+                    .FirstOrDefault()
+                })
+                .ToListAsync();
+
+            return booksDetails;
+        }
+
     }
 }

@@ -1,4 +1,5 @@
 ﻿using LibraryAPI.Data;
+using LibraryAPI.DTOs;
 using LibraryAPI.Interfaces;
 using LibraryAPI.Models;
 using Microsoft.EntityFrameworkCore;
@@ -21,17 +22,53 @@ namespace LibraryAPI.Repository
             return await Save();
         }
 
-        public async Task<ICollection<Review>> GetAllReviewsOfaBook(int bookID)
+        public async Task<int> GetBookAverageRating(int bookid)
+        {
+            var hasReviews = await _context.Reviews.AnyAsync(r => r.Book_BookID == bookid);
+
+            if (!hasReviews)
+            {
+                return -1;
+            }
+
+            var avgRating = await _context.Reviews
+                .Where(r => r.Book_BookID == bookid)
+                .AverageAsync(r => r.Rating);
+
+            bool hasDecimal = avgRating % 1 != 0;
+
+            if(hasDecimal && (avgRating - Math.Floor(avgRating)) < 0.5)
+            {
+                return (int)Math.Floor(avgRating);
+            }
+            else
+            {
+                return (int)Math.Ceiling(avgRating);
+            }
+        }
+
+        public async Task<ICollection<ReviewDetailsDTO>> GetAllReviewsOfaBook(int bookID)
         {
             return await _context.Reviews
                 .Where(r => r.Book_BookID == bookID)
+                .Select( r => new ReviewDetailsDTO
+                {
+                    BookID = r.Book_BookID,
+                    MembershipID = r.Membership_MembershipID,
+                    Comment = r.Comment,
+                    Rating = r.Rating,
+                    ReviewDate = r.ReviewDate,
+
+                    Username = _context.Memberships
+                    .Where(m => m.MembershipID == r.Membership_MembershipID)
+                    .Join(_context.Users,
+                    m => m.User_UserID,
+                    u => u.UserID,
+                    (m,u) => u.Username)
+                    .FirstOrDefault()
+                })
                 .ToListAsync();
         }
-
-
-
-
-
 
         public async Task<Review> GetReviewByBookID_UserID(int bookID, int userID)
         {

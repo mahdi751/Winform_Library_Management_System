@@ -80,48 +80,51 @@ namespace LibraryAPI.Controllers
         [HttpPost("MembershipSubscription")]
         public async Task<IActionResult> SubscribeToMembership([FromBody] MembershipDTO newMembershipDTO)
         {
-            using (var transaction = await _context.Database.BeginTransactionAsync())
+            try
             {
-                try
+                if (!ModelState.IsValid || newMembershipDTO == null)
                 {
-                    if (!ModelState.IsValid || newMembershipDTO == null)
-                    {
-                        throw new MembershipExceptions.MembershipCreationException("Invalid membership data.");
-                    }
+                    throw new MembershipExceptions.MembershipCreationException("Invalid membership data.");
+                }
 
-                    var membership = new Membership
-                    {
-                        MembershipName = newMembershipDTO.MembershipName,
-                        MaxBorrowLimit = newMembershipDTO.MaxBorrowLimit,
-                        MembershipPrice = newMembershipDTO.MembershipPrice,
-                        RemainingBorrowAbility = newMembershipDTO.MaxBorrowLimit,
-                        User_UserID = newMembershipDTO.User_UserID,
-                        StartDate = DateTime.Today,
-                        EndDate = DateTime.Today.AddDays(30)
-                    };
+                var membership = new Membership
+                {
+                    MembershipName = newMembershipDTO.MembershipName,
+                    MaxBorrowLimit = newMembershipDTO.MaxBorrowLimit,
+                    MembershipPrice = newMembershipDTO.MembershipPrice,
+                    RemainingBorrowAbility = newMembershipDTO.MaxBorrowLimit,
+                    User_UserID = newMembershipDTO.User_UserID,
+                    StartDate = DateTime.Today,
+                    EndDate = DateTime.Today.AddDays(30)
+                };
 
-                    var membershipSuccess = await _membershipRepository.AddMembership(membership);
+                var membershipSuccess = await _membershipRepository.AddMembership(membership);
+
+                if (await _membershipRepository.Save())
+                {
+                    var savedMembership = await _membershipRepository.GetLastMembershipByUserID(membership.User_UserID);
 
                     var payment = new PaymentHistory
                     {
                         Amount = membership.MembershipPrice,
                         PaymentDate = DateTime.Today,
                         PaymentType = "membership",
-                        User_UserID = membership.User_UserID
+                        Membership_MembershipID = savedMembership.MembershipID
                     };
 
-                    var paymentSuccess = await _paymentRepository.PayFines(payment);
+                    var paymentSuccess = await _paymentRepository.AddPayment(payment);
 
-                    await transaction.CommitAsync();
+                    if (await _paymentRepository.Save())
+                        return Ok(savedMembership);
 
-                    await _context.SaveChangesAsync();
-                    return Ok(membership);
+                    return BadRequest();
                 }
-                catch (Exception)
-                {
-                    await transaction.RollbackAsync();
-                    throw new MembershipExceptions.MembershipCreationException("Internal server error!");
-                }
+                return BadRequest();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Exception: " + ex);
+                throw new Exception("Exception: " + ex);
             }
         }
 
@@ -150,10 +153,10 @@ namespace LibraryAPI.Controllers
                         Amount = membership.MembershipPrice,
                         PaymentDate = DateTime.Today,
                         PaymentType = "membership",
-                        User_UserID = membership.User_UserID
+                        Membership_MembershipID = membership.MembershipID
                     };
 
-                    var paymentSuccess = await _paymentRepository.PayFines(payment);
+                    var paymentSuccess = await _paymentRepository.AddPayment(payment);
                     if (!paymentSuccess)
                     {
                         throw new MembershipExceptions.PaymentHistoryException("Couldn't insert the payment!");

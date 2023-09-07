@@ -52,6 +52,22 @@ namespace LibraryAPI.Controllers
             }
         }
 
+        [HttpGet("GetBookRemainingQuantity/{bookid}")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(int))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<int>> GetBookRemainingQuantity(int bookid)
+        {
+            try
+            {
+                var quantity = await _bookRepository.GetBookAvailableQuantity(bookid);
+                return Ok(quantity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while fetching books.", ex);
+            }
+        }
+            
         [HttpGet("Books/BookTitle/{bookTitle}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<Book>))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

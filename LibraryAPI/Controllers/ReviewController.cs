@@ -40,7 +40,7 @@ namespace LibraryAPI.Controllers
             return Ok(bookReview);
         }
 
-        [HttpGet("reviews/{bookId}")]
+        [HttpGet("Reviews/{bookId}")]
         [ProducesResponseType(200, Type = typeof(List<Review>))]
         [ProducesResponseType(400)]
         public async Task<IActionResult> GetAllReviewsForBook(int bookId)
@@ -62,6 +62,14 @@ namespace LibraryAPI.Controllers
         {
             var review = await _reviewRepository.GetReviewByBookID_UserID(bookID, userid);
             return Ok(review);
+        }
+
+        [HttpGet("GetBookAverageRating/{bookID}")]
+        [ProducesResponseType(200)]
+        public async Task<IActionResult> GetBookAverageRating(int bookID)
+        {
+            var rating = await _reviewRepository.GetBookAverageRating(bookID);
+            return Ok(rating);
         }
 
         [HttpPut("changeReview/{bookID}/{userid}")]
