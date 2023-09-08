@@ -1,0 +1,308 @@
+USE [master]
+GO
+/****** Object:  Database [Library]    Script Date: 08/09/2023 04:12:11 ******/
+CREATE DATABASE [Library]
+ CONTAINMENT = NONE
+ ON  PRIMARY 
+( NAME = N'Library', FILENAME = N'C:\Users\Marilyn\Desktop\me\MSSQL16.MSSQLSERVER\MSSQL\DATA\Library.mdf' , SIZE = 73728KB , MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB )
+ LOG ON 
+( NAME = N'Library_log', FILENAME = N'C:\Users\Marilyn\Desktop\me\MSSQL16.MSSQLSERVER\MSSQL\DATA\Library_log.ldf' , SIZE = 8192KB , MAXSIZE = 2048GB , FILEGROWTH = 65536KB )
+ WITH CATALOG_COLLATION = DATABASE_DEFAULT, LEDGER = OFF
+GO
+ALTER DATABASE [Library] SET COMPATIBILITY_LEVEL = 160
+GO
+IF (1 = FULLTEXTSERVICEPROPERTY('IsFullTextInstalled'))
+begin
+EXEC [Library].[dbo].[sp_fulltext_database] @action = 'enable'
+end
+GO
+ALTER DATABASE [Library] SET ANSI_NULL_DEFAULT OFF 
+GO
+ALTER DATABASE [Library] SET ANSI_NULLS OFF 
+GO
+ALTER DATABASE [Library] SET ANSI_PADDING OFF 
+GO
+ALTER DATABASE [Library] SET ANSI_WARNINGS OFF 
+GO
+ALTER DATABASE [Library] SET ARITHABORT OFF 
+GO
+ALTER DATABASE [Library] SET AUTO_CLOSE OFF 
+GO
+ALTER DATABASE [Library] SET AUTO_SHRINK OFF 
+GO
+ALTER DATABASE [Library] SET AUTO_UPDATE_STATISTICS ON 
+GO
+ALTER DATABASE [Library] SET CURSOR_CLOSE_ON_COMMIT OFF 
+GO
+ALTER DATABASE [Library] SET CURSOR_DEFAULT  GLOBAL 
+GO
+ALTER DATABASE [Library] SET CONCAT_NULL_YIELDS_NULL OFF 
+GO
+ALTER DATABASE [Library] SET NUMERIC_ROUNDABORT OFF 
+GO
+ALTER DATABASE [Library] SET QUOTED_IDENTIFIER OFF 
+GO
+ALTER DATABASE [Library] SET RECURSIVE_TRIGGERS OFF 
+GO
+ALTER DATABASE [Library] SET  DISABLE_BROKER 
+GO
+ALTER DATABASE [Library] SET AUTO_UPDATE_STATISTICS_ASYNC OFF 
+GO
+ALTER DATABASE [Library] SET DATE_CORRELATION_OPTIMIZATION OFF 
+GO
+ALTER DATABASE [Library] SET TRUSTWORTHY OFF 
+GO
+ALTER DATABASE [Library] SET ALLOW_SNAPSHOT_ISOLATION OFF 
+GO
+ALTER DATABASE [Library] SET PARAMETERIZATION SIMPLE 
+GO
+ALTER DATABASE [Library] SET READ_COMMITTED_SNAPSHOT OFF 
+GO
+ALTER DATABASE [Library] SET HONOR_BROKER_PRIORITY OFF 
+GO
+ALTER DATABASE [Library] SET RECOVERY FULL 
+GO
+ALTER DATABASE [Library] SET  MULTI_USER 
+GO
+ALTER DATABASE [Library] SET PAGE_VERIFY CHECKSUM  
+GO
+ALTER DATABASE [Library] SET DB_CHAINING OFF 
+GO
+ALTER DATABASE [Library] SET FILESTREAM( NON_TRANSACTED_ACCESS = OFF ) 
+GO
+ALTER DATABASE [Library] SET TARGET_RECOVERY_TIME = 60 SECONDS 
+GO
+ALTER DATABASE [Library] SET DELAYED_DURABILITY = DISABLED 
+GO
+ALTER DATABASE [Library] SET ACCELERATED_DATABASE_RECOVERY = OFF  
+GO
+EXEC sys.sp_db_vardecimal_storage_format N'Library', N'ON'
+GO
+ALTER DATABASE [Library] SET QUERY_STORE = ON
+GO
+ALTER DATABASE [Library] SET QUERY_STORE (OPERATION_MODE = READ_WRITE, CLEANUP_POLICY = (STALE_QUERY_THRESHOLD_DAYS = 30), DATA_FLUSH_INTERVAL_SECONDS = 900, INTERVAL_LENGTH_MINUTES = 60, MAX_STORAGE_SIZE_MB = 1000, QUERY_CAPTURE_MODE = AUTO, SIZE_BASED_CLEANUP_MODE = AUTO, MAX_PLANS_PER_QUERY = 200, WAIT_STATS_CAPTURE_MODE = ON)
+GO
+USE [Library]
+GO
+/****** Object:  UserDefinedFunction [dbo].[CalculateReturnDate]    Script Date: 08/09/2023 04:12:11 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE FUNCTION [dbo].[CalculateReturnDate] (@PickUpDate DATE)
+RETURNS DATE
+AS
+BEGIN
+    RETURN DATEADD(DAY, 30, @PickUpDate);
+END;
+GO
+/****** Object:  Table [dbo].[Author]    Script Date: 08/09/2023 04:12:11 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Author](
+	[authorid] [int] IDENTITY(1,1) NOT NULL,
+	[authorname] [varchar](50) NOT NULL,
+	[biography] [varchar](200) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[authorid] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Book]    Script Date: 08/09/2023 04:12:11 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Book](
+	[bookid] [int] IDENTITY(1,1) NOT NULL,
+	[booktitle] [varchar](50) NOT NULL,
+	[isbn] [varchar](13) NOT NULL,
+	[totalquantity] [int] NOT NULL,
+	[AvailableQuantity] [int] NOT NULL,
+	[genre] [varchar](50) NOT NULL,
+	[publishername] [varchar](50) NOT NULL,
+	[publicationdate] [date] NOT NULL,
+ CONSTRAINT [PK__Book__8BEA95C5A4F54D42] PRIMARY KEY CLUSTERED 
+(
+	[bookid] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+ CONSTRAINT [UQ_Book_isbn] UNIQUE NONCLUSTERED 
+(
+	[isbn] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Bookauthors]    Script Date: 08/09/2023 04:12:11 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Bookauthors](
+	[book_bookid] [int] NOT NULL,
+	[author_authorid] [int] NOT NULL,
+	[role] [varchar](10) NOT NULL,
+ CONSTRAINT [bookauthors_pk] PRIMARY KEY CLUSTERED 
+(
+	[book_bookid] ASC,
+	[author_authorid] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Borrow]    Script Date: 08/09/2023 04:12:11 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Borrow](
+	[membership_membershipid] [int] NOT NULL,
+	[book_bookid] [int] NOT NULL,
+	[pickupdate] [date] NOT NULL,
+	[returndate] [date] NOT NULL,
+	[overduefine] [int] NOT NULL,
+	[isReturned] [bit] NOT NULL,
+	[returnedDate] [date] NULL
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Membership]    Script Date: 08/09/2023 04:12:11 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Membership](
+	[membershipid] [int] IDENTITY(1,1) NOT NULL,
+	[membershipname] [varchar](50) NOT NULL,
+	[maxborrowlimit] [int] NOT NULL,
+	[RemainingBorrowAbility] [int] NOT NULL,
+	[membershipprice] [float] NOT NULL,
+	[startdate] [date] NOT NULL,
+	[enddate] [date] NOT NULL,
+	[user_userid] [int] NOT NULL,
+ CONSTRAINT [PK__Membersh__86AB370F7A8A0025] PRIMARY KEY CLUSTERED 
+(
+	[membershipid] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[PaymentHistory]    Script Date: 08/09/2023 04:12:11 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[PaymentHistory](
+	[paymentid] [int] IDENTITY(1,1) NOT NULL,
+	[membership_membershipid] [int] NOT NULL,
+	[paymentdate] [date] NOT NULL,
+	[amount] [float] NOT NULL,
+	[paymenttype] [varchar](20) NOT NULL,
+ CONSTRAINT [PK_PaymentHistory] PRIMARY KEY CLUSTERED 
+(
+	[paymentid] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Review]    Script Date: 08/09/2023 04:12:11 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Review](
+	[ReviewID] [int] IDENTITY(1,1) NOT NULL,
+	[membership_membershipid] [int] NOT NULL,
+	[book_bookid] [int] NOT NULL,
+	[rating] [int] NOT NULL,
+	[Comment] [varchar](300) NULL,
+	[reviewdate] [date] NOT NULL,
+ CONSTRAINT [PK__Review__74BC79AE38AB7A2C] PRIMARY KEY CLUSTERED 
+(
+	[ReviewID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[User]    Script Date: 08/09/2023 04:12:11 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[User](
+	[userid] [int] IDENTITY(1,1) NOT NULL,
+	[username] [varchar](50) NOT NULL,
+	[passwordhash] [varbinary](max) NOT NULL,
+	[passwordsalt] [varbinary](max) NOT NULL,
+	[firstname] [varchar](15) NOT NULL,
+	[lastname] [varchar](15) NOT NULL,
+	[address] [varchar](30) NOT NULL,
+	[email] [varchar](50) NOT NULL,
+	[phone] [varchar](8) NOT NULL,
+ CONSTRAINT [PK__User__CBA1B2574D172373] PRIMARY KEY CLUSTERED 
+(
+	[userid] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+ CONSTRAINT [user_email_un] UNIQUE NONCLUSTERED 
+(
+	[email] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+ CONSTRAINT [user_username_un] UNIQUE NONCLUSTERED 
+(
+	[username] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[Book] ADD  CONSTRAINT [DF__Book__AvailableQ__44CA3770]  DEFAULT ((0)) FOR [AvailableQuantity]
+GO
+ALTER TABLE [dbo].[Borrow] ADD  CONSTRAINT [DF__Borrow__overduef__123EB7A3]  DEFAULT ((0)) FOR [overduefine]
+GO
+ALTER TABLE [dbo].[Borrow] ADD  CONSTRAINT [DF__Borrow__isReturn__3A4CA8FD]  DEFAULT ((0)) FOR [isReturned]
+GO
+ALTER TABLE [dbo].[PaymentHistory] ADD  CONSTRAINT [DF__PaymentHi__payme__10566F31]  DEFAULT (getdate()) FOR [paymentdate]
+GO
+ALTER TABLE [dbo].[Bookauthors]  WITH CHECK ADD  CONSTRAINT [bookauthors_author_fk] FOREIGN KEY([author_authorid])
+REFERENCES [dbo].[Author] ([authorid])
+GO
+ALTER TABLE [dbo].[Bookauthors] CHECK CONSTRAINT [bookauthors_author_fk]
+GO
+ALTER TABLE [dbo].[Bookauthors]  WITH CHECK ADD  CONSTRAINT [bookauthors_book_fk] FOREIGN KEY([book_bookid])
+REFERENCES [dbo].[Book] ([bookid])
+GO
+ALTER TABLE [dbo].[Bookauthors] CHECK CONSTRAINT [bookauthors_book_fk]
+GO
+ALTER TABLE [dbo].[Borrow]  WITH CHECK ADD  CONSTRAINT [borrow_book_fk] FOREIGN KEY([book_bookid])
+REFERENCES [dbo].[Book] ([bookid])
+GO
+ALTER TABLE [dbo].[Borrow] CHECK CONSTRAINT [borrow_book_fk]
+GO
+ALTER TABLE [dbo].[Borrow]  WITH CHECK ADD  CONSTRAINT [borrow_membership_fk] FOREIGN KEY([membership_membershipid])
+REFERENCES [dbo].[Membership] ([membershipid])
+GO
+ALTER TABLE [dbo].[Borrow] CHECK CONSTRAINT [borrow_membership_fk]
+GO
+ALTER TABLE [dbo].[Membership]  WITH CHECK ADD  CONSTRAINT [membership_user_fk] FOREIGN KEY([user_userid])
+REFERENCES [dbo].[User] ([userid])
+GO
+ALTER TABLE [dbo].[Membership] CHECK CONSTRAINT [membership_user_fk]
+GO
+ALTER TABLE [dbo].[PaymentHistory]  WITH CHECK ADD  CONSTRAINT [FK_PaymentHistory_Membership] FOREIGN KEY([membership_membershipid])
+REFERENCES [dbo].[Membership] ([membershipid])
+GO
+ALTER TABLE [dbo].[PaymentHistory] CHECK CONSTRAINT [FK_PaymentHistory_Membership]
+GO
+ALTER TABLE [dbo].[Review]  WITH CHECK ADD  CONSTRAINT [review_book_fk] FOREIGN KEY([book_bookid])
+REFERENCES [dbo].[Book] ([bookid])
+GO
+ALTER TABLE [dbo].[Review] CHECK CONSTRAINT [review_book_fk]
+GO
+ALTER TABLE [dbo].[Review]  WITH CHECK ADD  CONSTRAINT [review_membership_fk] FOREIGN KEY([membership_membershipid])
+REFERENCES [dbo].[Membership] ([membershipid])
+GO
+ALTER TABLE [dbo].[Review] CHECK CONSTRAINT [review_membership_fk]
+GO
+ALTER TABLE [dbo].[Review]  WITH CHECK ADD  CONSTRAINT [CK__Review__rating__02084FDA] CHECK  (([rating]>=(0) AND [rating]<=(5)))
+GO
+ALTER TABLE [dbo].[Review] CHECK CONSTRAINT [CK__Review__rating__02084FDA]
+GO
+USE [master]
+GO
+ALTER DATABASE [Library] SET  READ_WRITE 
+GO
